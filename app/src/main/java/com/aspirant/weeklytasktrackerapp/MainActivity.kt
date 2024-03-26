@@ -3,43 +3,24 @@ package com.aspirant.weeklytasktrackerapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.runtime.remember
+import com.aspirant.weeklytasktrackerapp.model.auth.SharedPreferencesAuthService
 import com.aspirant.weeklytasktrackerapp.ui.theme.WeeklyTaskTrackerAppTheme
+import com.aspirant.weeklytasktrackerapp.view.App
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
             WeeklyTaskTrackerAppTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    Greeting("Android")
+                // Provide a ViewModel to the content
+                val authService = remember { SharedPreferencesAuthService(this) }
+                Surface {
+                    App(authService = authService)
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    WeeklyTaskTrackerAppTheme {
-        Greeting("Android")
     }
 }
