@@ -1,5 +1,6 @@
 package com.aspirant.weeklytasktrackerapp.view
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.lifecycle.ViewModel
@@ -25,10 +26,12 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewModelScope
 import com.aspirant.weeklytasktrackerapp.model.auth.AuthService
 import com.aspirant.weeklytasktrackerapp.model.entity.response.ApiResponse
 import com.aspirant.weeklytasktrackerapp.view.common.AnimatedLinearGradientBackground
 import com.aspirant.weeklytasktrackerapp.view.common.OutlinedTextFieldBackground
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -177,22 +180,25 @@ class LoginViewModel(
     }
 
     fun login() {
-        runBlocking {
+        viewModelScope.launch {
             errorMsg = null
             isLoading = true
-            val result = authService.login(username, password)
-            when (result) {
-                is ApiResponse.Success -> {
-                    // handle login
-                    onNavigateToTaskTracker()
-                }
+            authService.login(username, password, onLoginResponse = { loginResponse ->
+                if (loginResponse != null) {
+                    when (loginResponse) {
+                        is ApiResponse.Success -> {
+                            Log.i("login Response", "token: ${loginResponse.value}")
+                            onNavigateToTaskTracker()
+                        }
 
-                is ApiResponse.Failure -> {
-                    // change this to handle errors more dynamically later
-                    errorMsg = result.error
+                        is ApiResponse.Failure -> {
+                            Log.e("login Response", "error: ${loginResponse.error}")
+                            errorMsg = "Incorrect password provided"
+                        }
+                    }
                 }
-            }
-            isLoading = false
+                isLoading = false
+            })
         }
     }
 }

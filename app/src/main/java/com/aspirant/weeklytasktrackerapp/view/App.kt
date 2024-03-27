@@ -5,6 +5,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.aspirant.weeklytasktrackerapp.model.auth.SharedPreferencesAuthService
+import com.aspirant.weeklytasktrackerapp.view.tasktracker.TodayScreen
+import com.aspirant.weeklytasktrackerapp.view.tasktracker.TodayViewModel
 
 @Composable
 fun App(authService: SharedPreferencesAuthService) {
@@ -14,13 +16,19 @@ fun App(authService: SharedPreferencesAuthService) {
         composable("login") {
             LoginScreen(
                 viewModel = LoginViewModel(
-                    onNavigateToTaskTracker = { navController.navigate("taskTracker") },
+                    onNavigateToTaskTracker = { navController.navigate("taskTrackerToday") },
                     onNavigateToRegister = { navController.navigate("register") },
                     authService = authService
-                )
+                ),
             )
         }
         composable("register") { }
-        composable("taskTracker") { }
+        composable("taskTrackerToday") {
+            TodayScreen(
+                viewModel = TodayViewModel(
+                    onNavigateToLogin = { navController.navigate("login") },
+                ),
+            )
+        }
     }
 }

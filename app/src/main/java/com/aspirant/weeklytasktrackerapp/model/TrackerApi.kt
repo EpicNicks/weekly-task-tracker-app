@@ -7,7 +7,7 @@ import retrofit2.http.Body
 import retrofit2.http.POST
 
 interface TrackerApi {
-    @POST("/login")
+    @POST("account/login")
     fun login(@Body requestBody: LoginRequest): Call<ApiResponse<String>>
 }
 
