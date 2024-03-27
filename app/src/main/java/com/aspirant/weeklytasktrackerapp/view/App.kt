@@ -27,6 +27,7 @@ fun App(authService: SharedPreferencesAuthService) {
             TodayScreen(
                 viewModel = TodayViewModel(
                     onNavigateToLogin = { navController.navigate("login") },
+                    authService = authService,
                 ),
             )
         }

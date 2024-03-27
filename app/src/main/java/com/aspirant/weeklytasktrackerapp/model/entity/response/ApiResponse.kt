@@ -81,7 +81,11 @@ class ApiResponseAdapter : JsonSerializer<ApiResponse<*>>, JsonDeserializer<ApiR
                         }
                     }
                 } else {
-                    context?.deserialize<Any>(valueJsonElement, typeOfT)
+                    if (valueJsonElement.isJsonArray) {
+                        context?.deserialize<List<Any>>(valueJsonElement, typeOfT)
+                    } else {
+                        context?.deserialize<Any>(valueJsonElement, typeOfT)
+                    }
                 }
                 ApiResponse.success(value)
             }
