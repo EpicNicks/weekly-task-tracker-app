@@ -33,7 +33,7 @@ class SharedPreferencesAuthService(context: Context) : AuthService {
                         when (loginResponse) {
                             is ApiResponse.Success -> {
                                 with(sharedPreferences.edit()) {
-                                    putString(TOKEN_KEY, loginResponse.value)
+                                    putString(AuthService.TOKEN_KEY, loginResponse.value)
                                     apply()
                                 }
                             }
@@ -54,17 +54,13 @@ class SharedPreferencesAuthService(context: Context) : AuthService {
     }
 
     override fun getAuthToken(): String? {
-        return sharedPreferences.getString(TOKEN_KEY, null)
+        return sharedPreferences.getString(AuthService.TOKEN_KEY, null)
     }
 
     override fun logout() {
         with(sharedPreferences.edit()) {
-            putString(TOKEN_KEY, null)
+            putString(AuthService.TOKEN_KEY, null)
             apply()
         }
-    }
-
-    companion object {
-        const val TOKEN_KEY = "token"
     }
 }

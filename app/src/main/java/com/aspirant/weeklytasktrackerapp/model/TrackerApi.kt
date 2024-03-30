@@ -37,5 +37,11 @@ interface TrackerApi {
         @Body updateLogMinutesRequest: UpdateLogMinutesRequest,
         @Header("Authorization") authorizationString: String
     ): Call<ApiResponse<DailyLog>>
+
+    @POST("logs/create")
+    fun createLog(
+        @Body dailyLog: DailyLog,
+        @Header("Authorization") authorizationString: String
+    ): Call<ApiResponse<DailyLog>>
 }
 

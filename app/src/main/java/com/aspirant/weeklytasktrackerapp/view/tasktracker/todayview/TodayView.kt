@@ -1,7 +1,9 @@
 package com.aspirant.weeklytasktrackerapp.view.tasktracker.todayview
 
 import android.util.Log
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,7 +34,11 @@ fun TodayScreen(viewModel: TodayViewModel) {
     Column() {
         when (tasks.value.size) {
             0 -> {
-                Column(modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text("Looks like you have no tasks yet")
                     Button(
                         onClick = { viewModel.getUpdateDrawerIndex()(2) }
@@ -86,9 +92,10 @@ class TodayViewModel(
             onNavigateToLogin()
             return
         }
+        val authString = AuthService.authHeaderString(authToken)
         viewModelScope.launch {
             val logTag = "get active tasks from TodayView"
-            val call = RetrofitInstance.api.getActiveTasks(AuthService.authHeaderString(authToken))
+            val call = RetrofitInstance.api.getActiveTasks(authString)
             call.enqueue(object : Callback<ApiResponse<List<Task>>> {
                 override fun onFailure(call: Call<ApiResponse<List<Task>>>, throwable: Throwable) {
                     Log.e(logTag, "getTasks onFailure ${throwable.message}")

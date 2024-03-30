@@ -2,6 +2,7 @@ package com.aspirant.weeklytasktrackerapp.model
 
 import com.aspirant.weeklytasktrackerapp.model.entity.response.ApiResponse
 import com.aspirant.weeklytasktrackerapp.model.entity.response.ApiResponseAdapter
+import com.aspirant.weeklytasktrackerapp.model.entity.response.ListTypeAdapter
 import com.google.gson.GsonBuilder
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -11,7 +12,8 @@ object RetrofitInstance {
 
     val api: TrackerApi by lazy {
         val gson = GsonBuilder()
-            .registerTypeAdapter(ApiResponse::class.java, ApiResponseAdapter())
+            .registerTypeAdapterFactory(ListTypeAdapter.FACTORY)
+            .registerTypeAdapterFactory(ApiResponseAdapter.FACTORY)
             .create()
         Retrofit.Builder()
             .baseUrl(BASE_URL_PI)

@@ -1,18 +1,14 @@
 package com.aspirant.weeklytasktrackerapp.view.tasktracker.todayview
 
 import android.util.Log
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -34,7 +30,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -56,6 +54,7 @@ import kotlin.math.floor
 @Composable
 fun DailyLogCard(viewModel: DailyLogCardViewModel) {
     var expanded by remember { mutableStateOf(false) }
+    val keyboardController = LocalSoftwareKeyboardController.current
     val currentLogData by rememberUpdatedState(newValue = viewModel.currentLogData)
     var hourString by remember { mutableStateOf(((currentLogData?.dailyTimeMinutes ?: 0) / 60).toString()) }
     var minuteString by remember { mutableStateOf(((currentLogData?.dailyTimeMinutes ?: 0) % 60).toString()) }
@@ -90,12 +89,6 @@ fun DailyLogCard(viewModel: DailyLogCardViewModel) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    // left "border"
-//                    Box(
-//                        modifier = Modifier
-//                            .size(width = 8.dp, height = 50.dp)
-//                            .background(color = taskColor())
-//                    )
                     Text(text = task.taskName, modifier = Modifier.padding(8.dp))
                     Icon(
                         if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
@@ -125,16 +118,22 @@ fun DailyLogCard(viewModel: DailyLogCardViewModel) {
                         value = hourString,
                         onValueChange = {
                             hourString = it
-                            if (hourString.isNotEmpty() && hourString.toInt() >= 24) {
+                            if (hourString.isNotEmpty() && hourString.trim().toInt() >= 24) {
                                 hourString = "24"
                                 minuteString = "0"
                                 viewModel.updateMinutes(0)
                             }
-                            viewModel.updateHours(if (hourString.isNotEmpty()) hourString.toInt() else 0)
+                            viewModel.updateHours(hourString.trim().toIntOrNull() ?: 0)
                         },
                         modifier = Modifier
                             .weight(1f)
+                            .clickable {
+                                keyboardController?.hide()
+                            }
                             .onFocusChanged {
+                                if (it.isFocused && hourString.isEmpty() || hourString == "0") {
+                                    hourString = ""
+                                }
                                 if (!it.isFocused && hourString.isEmpty()) {
                                     hourString = "0"
                                 }
@@ -148,24 +147,35 @@ fun DailyLogCard(viewModel: DailyLogCardViewModel) {
                         value = minuteString,
                         onValueChange = {
                             minuteString = it
-                            viewModel.updateMinutes(if (minuteString.isNotEmpty()) minuteString.toInt() else 0)
+                            viewModel.updateMinutes(minuteString.trim().toIntOrNull() ?: 0)
                         },
                         modifier = Modifier
                             .weight(1f)
                             .onFocusChanged {
+                                if (it.isFocused && minuteString.isEmpty() || minuteString == "0") {
+                                    minuteString = ""
+                                }
                                 if (!it.isFocused && minuteString.isEmpty()) {
                                     minuteString = "0"
                                 }
-                                var minutesInt = minuteString.toInt()
+                                var minutesInt = minuteString
+                                    .trim()
+                                    .toIntOrNull() ?: 0
                                 if (minutesInt > 60) {
                                     if (hourString.isEmpty()) {
                                         hourString = "0"
                                     }
-                                    hourString = (hourString.toInt() + minutesInt / 60).toString()
+                                    hourString = (hourString
+                                        .trim()
+                                        .toInt() + minutesInt / 60).toString()
                                     minutesInt %= 60
                                     minuteString = minutesInt.toString()
                                     viewModel.updateMinutes(minutesInt)
-                                    viewModel.updateHours(hourString.toInt())
+                                    viewModel.updateHours(
+                                        hourString
+                                            .trim()
+                                            .toInt()
+                                    )
                                 }
                             },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -221,7 +231,8 @@ class DailyLogCardViewModel(
         viewModelScope.launch {
             val formattedDate = dateFormat(date)
             Log.i(logCardTag, "api called with logs/${formattedDate}/${task.id}")
-            val call = RetrofitInstance.api.getLogForDate(formattedDate, task.id, authToken)
+            val call =
+                RetrofitInstance.api.getLogForDate(formattedDate, task.id, AuthService.authHeaderString(authToken))
             call.enqueue(object : Callback<ApiResponse<DailyLog>> {
                 override fun onResponse(
                     call: Call<ApiResponse<DailyLog>>,
@@ -270,21 +281,58 @@ class DailyLogCardViewModel(
             onNavigateToLogin()
             return
         }
+        val authString = AuthService.authHeaderString(authToken)
         val logCardTag = "log card for task with name: ${task.taskName}"
         val dailyTimeMinutes = hours * 60 + minutes
+        val dateString = dateFormat(date)
         viewModelScope.launch {
-            val call = RetrofitInstance.api.updateLogMinutes(
-                logDate = dateFormat(date),
-                authorizationString = authToken,
-                updateLogMinutesRequest = UpdateLogMinutesRequest(taskId = task.id, dailyTimeMinutes = dailyTimeMinutes)
-            )
+            val call = when (currentLogData) {
+                null -> RetrofitInstance.api.createLog(
+                    dailyLog = DailyLog(
+                        dailyTimeMinutes = dailyTimeMinutes,
+                        taskId = task.id,
+                        logDate = dateString,
+                        collectedPoints = false
+                    ),
+                    authorizationString = authString
+                )
+
+                else -> RetrofitInstance.api.updateLogMinutes(
+                    logDate = dateString,
+                    authorizationString = authString,
+                    updateLogMinutesRequest = UpdateLogMinutesRequest(
+                        taskId = task.id,
+                        dailyTimeMinutes = dailyTimeMinutes
+                    )
+                )
+            }
             call.enqueue(object : Callback<ApiResponse<DailyLog>> {
-                override fun onResponse(p0: Call<ApiResponse<DailyLog>>, p1: Response<ApiResponse<DailyLog>>) {
-                    TODO("Not yet implemented")
+                override fun onResponse(call: Call<ApiResponse<DailyLog>>, response: Response<ApiResponse<DailyLog>>) {
+                    Log.i(
+                        logCardTag,
+                        "success: ${response.isSuccessful}, status code: ${response.code()} requestUrl: ${
+                            response.raw().request().url()
+                        }"
+                    )
+                    val responseBody = response.body()
+                    if (responseBody == null) {
+                        Log.e(logCardTag, "response body was null")
+                        return
+                    }
+                    when (responseBody) {
+                        is ApiResponse.Success -> {
+                            Log.i(logCardTag, "updated entry for ${task.taskName}: ${responseBody.value}")
+                            currentLogData = responseBody.value
+                        }
+
+                        is ApiResponse.Failure -> {
+                            Log.e(logCardTag, "log card update failed with error: ${responseBody.error}")
+                        }
+                    }
                 }
 
-                override fun onFailure(p0: Call<ApiResponse<DailyLog>>, p1: Throwable) {
-                    TODO("Not yet implemented")
+                override fun onFailure(call: Call<ApiResponse<DailyLog>>, throwable: Throwable) {
+                    Log.e(logCardTag, "log card for task with name: ${task.taskName} failed to update")
                 }
 
             })
