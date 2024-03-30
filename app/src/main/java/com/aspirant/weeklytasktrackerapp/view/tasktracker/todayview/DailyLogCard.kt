@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -21,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -28,11 +30,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -51,20 +56,37 @@ import retrofit2.Response
 import java.time.LocalDate
 import kotlin.math.floor
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun DailyLogCard(viewModel: DailyLogCardViewModel) {
+    val (focusRequester) = FocusRequester.createRefs()
     var expanded by remember { mutableStateOf(false) }
     val keyboardController = LocalSoftwareKeyboardController.current
     val currentLogData by rememberUpdatedState(newValue = viewModel.currentLogData)
-    var hourString by remember { mutableStateOf(((currentLogData?.dailyTimeMinutes ?: 0) / 60).toString()) }
-    var minuteString by remember { mutableStateOf(((currentLogData?.dailyTimeMinutes ?: 0) % 60).toString()) }
+    var hourString by remember(currentLogData) {
+        mutableStateOf(((currentLogData?.dailyTimeMinutes ?: 0) / 60).toString())
+    }
+    var minuteString by remember(currentLogData) {
+        mutableStateOf(((currentLogData?.dailyTimeMinutes ?: 0) % 60).toString())
+    }
+
+    LaunchedEffect(key1 = currentLogData) {
+        if (currentLogData != null) {
+            viewModel.updateHours(currentLogData!!.dailyTimeMinutes / 60)
+            viewModel.updateMinutes(currentLogData!!.dailyTimeMinutes % 60)
+        }
+    }
 
     val task = viewModel.getTask()
 
     fun toTimeString(minutesLogged: Int): String {
         val hours = floor(minutesLogged / 60.0).toInt()
         val minutes = floor(minutesLogged % 60.0).toInt()
-        return "${if (hours > 0) "$hours  hours and" else ""} $minutes minutes"
+
+        if (hours > 0) {
+            return "$hours hour${if (hours != 1) "s" else ""} ${if (minutes > 0) "and $minutes minute${if (minutes != 1) "s" else ""}" else ""}"
+        }
+        return "$minutes minute${if (minutes != 1) "s" else ""}"
     }
 
     fun taskColor(): Color {
@@ -73,6 +95,11 @@ fun DailyLogCard(viewModel: DailyLogCardViewModel) {
         return Color(android.graphics.Color.parseColor("#$a$rgb"))
     }
 
+    fun submit() {
+        expanded = false
+        viewModel.updateDailyLog()
+        keyboardController?.hide()
+    }
 
     Card(
         shape = RoundedCornerShape(4.dp),
@@ -117,8 +144,8 @@ fun DailyLogCard(viewModel: DailyLogCardViewModel) {
                     TextField(
                         value = hourString,
                         onValueChange = {
-                            hourString = it
-                            if (hourString.isNotEmpty() && hourString.trim().toInt() >= 24) {
+                            hourString = it.trim()
+                            if (hourString.isNotEmpty() && (hourString.toIntOrNull() ?: 0) >= 24) {
                                 hourString = "24"
                                 minuteString = "0"
                                 viewModel.updateMinutes(0)
@@ -138,7 +165,13 @@ fun DailyLogCard(viewModel: DailyLogCardViewModel) {
                                     hourString = "0"
                                 }
                             },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Next
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onNext = { focusRequester.requestFocus() }
+                        ),
                         trailingIcon = {
                             Text(text = "h")
                         }
@@ -146,11 +179,12 @@ fun DailyLogCard(viewModel: DailyLogCardViewModel) {
                     TextField(
                         value = minuteString,
                         onValueChange = {
-                            minuteString = it
+                            minuteString = it.trim()
                             viewModel.updateMinutes(minuteString.trim().toIntOrNull() ?: 0)
                         },
                         modifier = Modifier
                             .weight(1f)
+                            .focusRequester(focusRequester)
                             .onFocusChanged {
                                 if (it.isFocused && minuteString.isEmpty() || minuteString == "0") {
                                     minuteString = ""
@@ -178,14 +212,24 @@ fun DailyLogCard(viewModel: DailyLogCardViewModel) {
                                     )
                                 }
                             },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                submit()
+                            }
+                        ),
                         trailingIcon = {
                             Text(text = "m")
                         }
                     )
                 }
                 Button(
-                    onClick = { viewModel.updateDailyLog() },
+                    onClick = {
+                        submit()
+                    },
                     modifier = Modifier
                         .align(Alignment.End)
                         .padding(top = 20.dp)
