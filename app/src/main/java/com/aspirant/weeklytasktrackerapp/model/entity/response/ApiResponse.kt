@@ -1,5 +1,7 @@
 package com.aspirant.weeklytasktrackerapp.model.entity.response
 
+import android.util.Log
+import com.google.gson.Gson
 import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
@@ -60,6 +62,7 @@ class ApiResponseAdapter : JsonSerializer<ApiResponse<*>>, JsonDeserializer<ApiR
                 val valueJsonElement = jsonObject.get("value")
                 val value = if (valueJsonElement.isJsonPrimitive) {
                     // Handle the case when the value is a primitive
+                    Log.i("ApiResponse deserialize", "value was jsonPrimitive")
                     when {
                         valueJsonElement.asJsonPrimitive.isString -> {
                             // If the value is a JSON string, return it directly
@@ -82,8 +85,11 @@ class ApiResponseAdapter : JsonSerializer<ApiResponse<*>>, JsonDeserializer<ApiR
                     }
                 } else {
                     if (valueJsonElement.isJsonArray) {
-                        context?.deserialize<List<Any>>(valueJsonElement, typeOfT)
+                        Log.i("ApiResponse deserialize", "value was jsonArray")
+                        val taskListType = object : TypeToken<List<Task>>() {}.type
+                        context?.deserialize<List<Task>>(valueJsonElement, taskListType)
                     } else {
+                        Log.i("ApiResponse deserialize", "value was jsonObject")
                         context?.deserialize<Any>(valueJsonElement, typeOfT)
                     }
                 }
@@ -100,5 +106,4 @@ class ApiResponseAdapter : JsonSerializer<ApiResponse<*>>, JsonDeserializer<ApiR
             }
         }
     }
-
 }

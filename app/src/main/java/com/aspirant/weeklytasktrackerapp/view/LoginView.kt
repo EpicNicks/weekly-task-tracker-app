@@ -10,7 +10,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -20,8 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -32,7 +29,6 @@ import com.aspirant.weeklytasktrackerapp.model.entity.response.ApiResponse
 import com.aspirant.weeklytasktrackerapp.view.common.AnimatedLinearGradientBackground
 import com.aspirant.weeklytasktrackerapp.view.common.OutlinedTextFieldBackground
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -84,6 +80,7 @@ fun LoginScreen(viewModel: LoginViewModel) {
                         value = viewModel.username,
                         onValueChange = { username -> viewModel.updateUsername(username) },
                         label = { Text("Username") },
+                        enabled = !isLoading,
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(
@@ -101,6 +98,7 @@ fun LoginScreen(viewModel: LoginViewModel) {
                             viewModel.updatePassword(password)
                         },
                         label = { Text("Password") },
+                        enabled = !isLoading,
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(
@@ -113,7 +111,7 @@ fun LoginScreen(viewModel: LoginViewModel) {
                             .fillMaxWidth()
                     )
                 }
-                errorMsg?.let { Text(it, color = Color.Red) }
+                Text(errorMsg, color = Color.Red)
                 Button(
                     onClick = { viewModel.login() },
                     enabled = !isLoading,
@@ -138,16 +136,6 @@ fun LoginScreen(viewModel: LoginViewModel) {
                 ) {
                     Text("Register")
                 }
-                if (isLoading) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.5f)), // Semi-transparent black background
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = Color.White) // White circular loading spinner
-                    }
-                }
             }
         }
     }
@@ -159,10 +147,18 @@ class LoginViewModel(
     private val onNavigateToTaskTracker: () -> Unit,
     private val onNavigateToRegister: () -> Unit
 ) : ViewModel() {
-    var isLoading: Boolean = false
-    var errorMsg: String? = null
+    var isLoading by mutableStateOf(false)
+        private set
+    var errorMsg by mutableStateOf("")
+        private set
     var username by mutableStateOf("")
         private set
+
+    init {
+        if (authService.getAuthToken() != null) {
+            onNavigateToTaskTracker()
+        }
+    }
 
     fun updateUsername(input: String) {
         username = input
@@ -181,21 +177,24 @@ class LoginViewModel(
 
     fun login() {
         viewModelScope.launch {
-            errorMsg = null
+            errorMsg = ""
             isLoading = true
             authService.login(username, password, onLoginResponse = { loginResponse ->
+                val loginResponseTag = "login Response"
                 if (loginResponse != null) {
                     when (loginResponse) {
                         is ApiResponse.Success -> {
-                            Log.i("login Response", "token: ${loginResponse.value}")
+                            Log.i(loginResponseTag, "token: ${loginResponse.value}")
                             onNavigateToTaskTracker()
                         }
 
                         is ApiResponse.Failure -> {
-                            Log.e("login Response", "error: ${loginResponse.error}")
+                            Log.e(loginResponseTag, "error: ${loginResponse.error}")
                             errorMsg = "Incorrect password provided"
                         }
                     }
+                } else {
+                    Log.e(loginResponseTag, "response was null")
                 }
                 isLoading = false
             })

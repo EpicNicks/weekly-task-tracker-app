@@ -9,7 +9,6 @@ import com.aspirant.weeklytasktrackerapp.model.entity.response.ApiResponse
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import retrofit2.awaitResponse
 
 class SharedPreferencesAuthService(context: Context) : AuthService {
 
@@ -28,22 +27,28 @@ class SharedPreferencesAuthService(context: Context) : AuthService {
             override fun onResponse(call: Call<ApiResponse<String>>, response: Response<ApiResponse<String>>) {
                 Log.i("loginResponse", "${response.headers()}, ${response.body()}")
                 Log.i("loginResponse", "success: ${response.isSuccessful}, response code: ${response.code()}")
-                val loginResponse = response.body()
-                if (loginResponse != null) {
-                    when (loginResponse) {
-                        is ApiResponse.Success -> {
-                            with(sharedPreferences.edit()) {
-                                putString(TOKEN_KEY, loginResponse.value)
-                                apply()
+                if (response.isSuccessful) {
+                    val loginResponse = response.body()
+                    if (loginResponse != null) {
+                        when (loginResponse) {
+                            is ApiResponse.Success -> {
+                                with(sharedPreferences.edit()) {
+                                    putString(TOKEN_KEY, loginResponse.value)
+                                    apply()
+                                }
                             }
-                        }
 
-                        is ApiResponse.Failure -> {
-
+                            is ApiResponse.Failure -> {}
                         }
                     }
+                    onLoginResponse(loginResponse)
+                } else {
+                    val loginResponse = response.errorBody()
+                    if (loginResponse != null) {
+                        Log.e("loginResponse", "login error body: $loginResponse")
+                    }
+                    onLoginResponse(ApiResponse.failure(loginResponse.toString()))
                 }
-                onLoginResponse(loginResponse)
             }
         })
     }

@@ -7,9 +7,6 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitInstance {
-
-    // local won't work unless cleartext is enabled (http)
-    private const val BASE_URL_LOCAL = "http://192.168.2.70:8080/api/"
     private const val BASE_URL_PI = "https://freetime.49385219.xyz/api/"
 
     val api: TrackerApi by lazy {
