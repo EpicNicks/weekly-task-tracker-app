@@ -30,6 +30,8 @@ import androidx.lifecycle.ViewModel
 import com.aspirant.weeklytasktrackerapp.model.auth.AuthService
 import com.aspirant.weeklytasktrackerapp.view.tasktracker.todayview.TodayScreen
 import com.aspirant.weeklytasktrackerapp.view.tasktracker.todayview.TodayViewModel
+import com.aspirant.weeklytasktrackerapp.view.tasktracker.weeklyview.WeeklyView
+import com.aspirant.weeklytasktrackerapp.view.tasktracker.weeklyview.WeeklyViewViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -90,15 +92,20 @@ fun TaskTrackerDrawer(viewModel: TaskTrackerDrawerViewModel) {
             }) { padding ->
             Box(modifier = Modifier.padding(padding)) {
                 when (selectedIndex) {
-                    0 -> {
-                        TodayScreen(
-                            viewModel = TodayViewModel(
-                                authService = viewModel.getAuthService(),
-                                onNavigateToLogin = viewModel.getOnNavigateToLogin(),
-                                updateDrawerIndex = { viewModel.updateSelectedIndex(it) }
-                            )
+                    0 -> TodayScreen(
+                        viewModel = TodayViewModel(
+                            authService = viewModel.getAuthService(),
+                            onNavigateToLogin = viewModel.getOnNavigateToLogin(),
+                            updateDrawerIndex = { viewModel.updateSelectedIndex(it) }
                         )
-                    }
+                    )
+
+                    1 -> WeeklyView(
+                        viewModel = WeeklyViewViewModel(
+                            authService = viewModel.getAuthService(),
+                            onNavigateToLogin = viewModel.getOnNavigateToLogin()
+                        )
+                    )
                 }
             }
         }

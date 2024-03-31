@@ -13,7 +13,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role.Companion.Button
 import retrofit2.Callback
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -31,7 +30,7 @@ fun TodayScreen(viewModel: TodayViewModel) {
 
     val tasks = rememberUpdatedState(newValue = viewModel.tasks)
 
-    Column() {
+    Column {
         when (tasks.value.size) {
             0 -> {
                 Column(

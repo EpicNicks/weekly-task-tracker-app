@@ -12,6 +12,7 @@ import retrofit2.http.Header
 import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface TrackerApi {
 
@@ -30,6 +31,13 @@ interface TrackerApi {
         @Path("taskId") taskId: Int,
         @Header("Authorization") authorizationString: String
     ): Call<ApiResponse<DailyLog>>
+
+    @GET("logs/all")
+    fun getAllLogsInRange(
+        @Query("startDate") startDate: String,
+        @Query("endDate") endDate: String,
+        @Header("Authorization") authorizationString: String
+    ): Call<ApiResponse<List<DailyLog>>>
 
     @PATCH("logs/change-daily-minutes/{logDate}")
     fun updateLogMinutes(
